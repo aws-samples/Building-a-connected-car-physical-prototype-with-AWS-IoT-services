@@ -1,0 +1,72 @@
+{
+  "description": "AWS IoT FleetWise Macchinetta Signal Catalog",
+  "name": "MacchinettaSignalCatalog",
+  "nodes": [
+    {
+      "branch": {
+        "description": "description",
+        "fullyQualifiedName": "Led"
+      }
+    },
+    {
+      "branch": {
+        "description": "description",
+        "fullyQualifiedName": "Battery"
+      }
+    },
+    {
+      "sensor": {
+        "dataType": "DOUBLE",
+        "fullyQualifiedName": "ActualVehicleSpeed",
+        "max": 320,
+        "min": 0,
+        "unit": "kph"
+      }
+    },
+    {
+      "sensor": {
+        "dataType": "DOUBLE",
+        "fullyQualifiedName": "Led.Red",
+        "max": 255,
+        "min": 0,
+        "unit": ""
+      }
+    },
+    {
+      "sensor": {
+        "dataType": "DOUBLE",
+        "fullyQualifiedName": "Led.Green",
+        "max": 255,
+        "min": 0,
+        "unit": ""
+      }
+    },
+    {
+      "sensor": {
+        "dataType": "DOUBLE",
+        "fullyQualifiedName": "Battery.BatteryChargeLevel",
+        "max": 1000,
+        "min": -100,
+        "unit": "%"
+      }
+    },
+    {
+      "sensor": {
+        "dataType": "DOUBLE",
+        "fullyQualifiedName": "VehicleStatus",
+        "max": 1000,
+        "min": 0,
+        "unit": ""
+      }
+    },
+    {
+      "sensor": {
+        "dataType": "DOUBLE",
+        "fullyQualifiedName": "Battery.BatteryPackVoltage",
+        "max": 10000,
+        "min": 0,
+        "unit": "v"
+      }
+    }
+  ]
+}

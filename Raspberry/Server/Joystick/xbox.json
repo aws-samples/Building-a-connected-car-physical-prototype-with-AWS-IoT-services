@@ -1,0 +1,79 @@
+{
+  "controls": {
+    "0": {
+      "name": "A",
+      "action": "null",
+      "type": "null"
+    },
+    "1": {
+      "name": "B",
+      "action": "green",
+      "type": "led"
+    },
+    "2": {
+      "name": "X",
+      "action": "red",
+      "type": "led"
+    },
+    "3": {
+      "name": "Y",
+      "action": "null",
+      "type": "null"
+    },
+    "4": {
+      "name": "view",
+      "action": "null",
+      "type": "null"
+    },
+    "5": {
+      "name": "RT",
+      "action": "null",
+      "type": "null"
+    },
+    "6": {
+      "name": "menu",
+      "action": "null",
+      "type": "null"
+    },
+    "7": {
+      "name": "left_stick_click",
+      "action": "null",
+      "type": "null"
+    },
+    "8": {
+      "name": "right_stick_click",
+      "action": "null",
+      "type": "null"
+    },
+    "9": {
+      "name": "LB",
+      "action": "null",
+      "type": "null"
+    },
+    "10": {
+      "name": "RB",
+      "action": "null",
+      "type": "null"
+    },
+    "11": {
+      "name": "up_arrow",
+      "action": "up",
+      "type": "direction"
+    },
+    "12": {
+      "name": "down_arrow",
+      "action": "down",
+      "type": "direction"
+    },
+    "13": {
+      "name": "left_arrow",
+      "action": "left",
+      "type": "direction"
+    },
+    "14": {
+      "name": "right_arrow",
+      "action": "right",
+      "type": "direction"
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "associationBehavior": "ValidateIotThingExists",
+  "vehicleName": "[Your vehicleName]",
+  "modelManifestArn": "[Your modelManifestArn]",
+  "decoderManifestArn": "[Your decoderManifestArn]"
+}

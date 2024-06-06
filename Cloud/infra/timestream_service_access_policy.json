@@ -1,0 +1,22 @@
+{
+  "PolicyName": "fleetwise-timestream",
+  "PolicyDocument": {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Action": [
+          "timestream:WriteRecords",
+          "timestream:Select",
+          "timestream:DescribeTable"
+        ],
+        "Effect": "Allow",
+        "Resource": [{ "Ref": "<ARN>" }]
+      },
+      {
+        "Action": ["timestream:DescribeEndpoints"],
+        "Effect": "Allow",
+        "Resource": ["*"]
+      }
+    ]
+  }
+}

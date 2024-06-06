@@ -1,17 +1,9 @@
-## My Project
+# Welcome to Macchinetta
 
-TODO: Fill this README out!
+Welcome to the repository of code useful for configuring the custom applications and AWS services necessary to work with the physical prototype of the car described in blog post.
 
-Be sure to:
+The Readme.md file in the 'docs' folder contains detailed information for installing and configuring.
 
-* Change the title in this README
-* Edit your repository description on GitHub
+Good work and have fun!
 
-## Security
-
-See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
-
-## License
-
-This library is licensed under the MIT-0 License. See the LICENSE file.
-
+The 'Macchinetta' team
