@@ -12,7 +12,7 @@ Note: to use Amazon Managed Grafana, you must have configured AWS IAM Identity C
 
 First of all, create the TimestreamExecutionRole that will be used by AWS IoT Fleetwise campaign to access to Amazon Timestream table.
 
-To create these resources with the aws-cli run the following command using the json files in the [infra](../cloud/infra/) folder from this [repo](https://gitlab.aws.dev/iot1/macchinetta):
+To create these resources with the aws-cli run the following command using the json files in the [infra](../cloud/infra/) folder:
 
 ```
 cd cloud/infra/
@@ -30,7 +30,7 @@ aws iam attach-role-policy --policy-arn <permissions-policy-arn> --role-name Tim
 
 ### 1. Cloudformation
 
-In this section, we use AWS CloudFormation Templates to create two necessary AWS resources: Amazon Timestream and Amazon Managed Grafana. You can download the CloudFormation Templates from the cloud/infra folder from this [repo](https://gitlab.aws.dev/iot1/macchinetta) and follow the steps below.
+In this section, we use AWS CloudFormation Templates to create two necessary AWS resources: Amazon Timestream and Amazon Managed Grafana. You can download the CloudFormation Templates from the cloud/infra folder and follow the steps below.
 
 Notes:
 
@@ -168,21 +168,21 @@ Write the API key and calculator name in the config.json
 
 ### 5. Detailed data visualization
 
-At step 1 of the first paragraph, you created an Amazon Managed Grafana workspace through a CF Template. In this section, you will use some manual steps to import and configure the Grafana dashboard. You can download the dashboard-fw.json file from the cloud/infra folder from this [repo](https://gitlab.aws.dev/iot1/macchinetta).
+At step 1 of the first paragraph, you created an Amazon Managed Grafana workspace through a CF Template. In this section, you will use some manual steps to import and configure the Grafana dashboard. You can download the dashboard-fw.json file from the cloud/infra folder.
 After imported, the Grafana dashboard will read the data from the Timestream table, which you already created in step 2 of the first paragraph. This table is continuously populated by Iot FleetWise.
 
 Follow these steps below to import a sample dashboard and configure the users, the Timestream plug-in, and the data source:
 
 1. Give a user access to the Amazon Managed Grafana workspace as Admin, by following steps 1 to 6 in this [guide](https://docs.aws.amazon.com/grafana/latest/userguide/AMG-manage-users-and-groups-AMG.html)
 
-![alt text](images/amg_user.png "AMG"){width=80%}
+![alt text](../images/amg_user.png "AMG"){width=80%}
 
 2. Install the Timestream plugin using this [guide](https://docs.aws.amazon.com/grafana/latest/userguide/grafana-plugins.html) and the Grafana console URL that you wrote down in Step 1
 3. Close and reopen the Grafana workspace and configure the Timestream data source using this [guide](https://docs.aws.amazon.com/grafana/latest/userguide/Timestream-adding-AWS-config.html) starting from step 7 (in step 10 select the AWS Region in which you created all the resources)
 4. On the bottom-right of the screen, on the same line of the Amazon Timestream datasource, click on “Go to Settings”. In the new screen in the Timestream Details section choose Database: ‘macchinettafw’ and Table: fw001. Click on “Save & test”. You can refer to the following two screenshots:
 
-![alt text](images/grafana_datasource3.png "AMG-datasource3"){width=80%}
-![alt text](images/grafana_datasource4.png "AMG-datasource4"){width=80%}
+![alt text](../images/grafana_datasource3.png "AMG-datasource3"){width=80%}
+![alt text](../images/grafana_datasource4.png "AMG-datasource4"){width=80%}
 
 5. To import the Grafana dashboard follow these steps:
 
@@ -190,17 +190,17 @@ Follow these steps below to import a sample dashboard and configure the users, t
 
 5b. Click New and select Import in the dropdown menu.
 
-![alt text](images/grafana_dashboard.png "AMG-dashboard"){width=80%}
+![alt text](../images/grafana_dashboard.png "AMG-dashboard"){width=80%}
 
-5c. Upload the dashboard-fw.json file you downloaded from the cloud/infra folder from the [repo](https://gitlab.aws.dev/iot1/macchinetta).
+5c. Upload the dashboard-fw.json file you downloaded from the cloud/infra folder.
 
 5d. Select the Amazon Timestream datasource and click on Import.
 
-![alt text](images/grafana_dashboard2.png "AMG-dashboard2"){width=80%}
+![alt text](../images/grafana_dashboard2.png "AMG-dashboard2"){width=80%}
 
 You will see the imported dashboard. Note that if the Timestream table is empty, the dashboard may give some display errors (they will disappear when you start entering the data)
 
-![alt text](images/grafana_dashboard3.png "AMG-dashboard3"){width=80%}
+![alt text](../images/grafana_dashboard3.png "AMG-dashboard3"){width=80%}
 
 ## On the vehicle
 
@@ -479,8 +479,6 @@ cd ~/aws-iot-fleetwise-edge/tools/cloud \
 ```
 
 To decommission all the resources deployed during this walkthrough, use the following steps:
-
-**INSERIRE LE ALTRE PARTI DI CUI FARE CLEANUP**
 
 - Delete the Timestream stack by running the following command:
 
