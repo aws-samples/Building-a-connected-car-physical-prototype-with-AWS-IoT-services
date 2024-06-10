@@ -466,7 +466,6 @@ Point your browser to ip:port of you Raspberry Pi and have fun!
 
 ## Cleaning Up
 
-DA TESTARE
 
 cd ~/aws-iot-fleetwise-edge/tools/cloud \
 && ./clean-up.sh \
