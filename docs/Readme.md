@@ -30,8 +30,6 @@ aws iam attach-role-policy --policy-arn <permissions-policy-arn> --role-name Tim
 
 ### 1. Cloudformation
 
-DOBBIAMO MODIFICARE LA POLICY PER LE THINGS: POLICY PER FLEETWISE E PER IOT CORE
-
 In this section, we use AWS CloudFormation Templates to create two necessary AWS resources: Amazon Timestream and Amazon Managed Grafana. You can download the CloudFormation Templates from the cloud/infra folder from this [repo](https://gitlab.aws.dev/iot1/macchinetta) and follow the steps below.
 
 Notes:
