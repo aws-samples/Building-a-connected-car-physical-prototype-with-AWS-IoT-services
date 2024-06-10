@@ -348,7 +348,6 @@ Copy the Raspberry/Server folder to the Raspberry Pi, and then use this command 
 sudo pip install -r requirements.txt
 ```
 
-!!!!!RIMUOVERE LA CHIAVE PUBBLICA DAL CONFIG.JSON
 Create a folder named certs into Raspberry/Server folder.
 Copy the certificates you downloaded before into Raspberry/Server/certs folder.
 You also need to copy the AmazonRootCA1.pem in the same directory.
