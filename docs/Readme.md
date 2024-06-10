@@ -164,7 +164,9 @@ aws location create-key --key-name <name of your key> --restrictions '{"AllowAct
 
 Write the API key and calculator name in the config.json
 
-### 4. Main Dashboard
+### 4. Central UI
+
+
 
 ### 5. Detailed data visualization
 
