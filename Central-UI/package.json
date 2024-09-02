@@ -16,7 +16,7 @@
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
     "aws-amplify": "^6.0.17",
-    "axios": "^0.24.0",
+    "axios": "^0.28.0",
     "d3": "^7.8.5",
     "notistack": "^3.0.1",
     "react": "^18.2.0",
