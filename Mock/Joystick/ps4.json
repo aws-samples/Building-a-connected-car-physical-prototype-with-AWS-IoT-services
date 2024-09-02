@@ -1,0 +1,22 @@
+{
+  "controls": {
+    "0": { "name": "x", "action": "null", "type": "null" },
+    "1": { "name": "circle", "action": "green", "type": "led" },
+    "2": { "name": "square", "action": "red", "type": "led" },
+    "3": { "name": "triangle", "action": "null", "type": "null" },
+    "4": { "name": "share", "action": "null", "type": "null" },
+    "5": { "name": "PS", "action": "null", "type": "null" },
+    "6": { "name": "options", "action": "null", "type": "null" },
+    "7": { "name": "left_stick_click", "action": "null", "type": "null" },
+    "8": { "name": "right_stick_click", "action": "null", "type": "null" },
+    "9": { "name": "L1", "action": "null", "type": "null" },
+    "10": { "name": "R1", "action": "null", "type": "null" },
+    "11": { "name": "up_arrow", "action": "up", "type": "head" },
+    "12": { "name": "down_arrow", "action": "down", "type": "head" },
+    "13": { "name": "left_arrow", "action": "left", "type": "head" },
+    "14": { "name": "right_arrow", "action": "right", "type": "head" },
+    "15": { "name": "touchpad", "action": "null", "type": "null" },
+    "16": { "name": "L2", "action": "null", "type": "null" },
+    "17": { "name": "R2", "action": "null", "type": "null" }
+  }
+}

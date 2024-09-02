@@ -1,0 +1,15 @@
+{
+  "endpoint": "a2rgfzx54jwhbp-ats.iot.eu-central-1.amazonaws.com",
+  "ca": "certs/AmazonRootCA1.pem",
+  "privatekey": "certs/private-key.key",
+  "certificate": "certs/certificate.pem",
+  "vehiclename": "car-leo",
+  "routecalculator": "fake-gps",
+  "region": "eu-central-1",
+  "gpsStart": [9.170636, 45.468483],
+  "gpsEnd": [9.207242, 45.450725],
+  "canInterface": "vcan0",
+  "canDatabase": "Comm/hscan.dbc",
+  "controller": "xbox",
+  "apikey": "v1.public.eyJqdGkiOiJjYTNhYTAzMi01OTU1LTQ3YjUtYWUwYy1lMjZmM2M2MzhjZmUifSzoKTRfSfu5nghT1eLXSO1E0HGcXE_RsaDcgiBCPewmrFVFGI9vmz9yJWl60zh4KJo-nzYy64cnTZRzQrTd4G_WKqd61rfHNZQMeUSQgBprg5OPRZyqNf0lbsoLHAh56QgGJBFBta-i2LDJ5QdANv6Z5BWaXktpYoMxtIJvj6GuC48TM7lyKS7EOqQqeDRXzh8TXFdsyS2apXNHCSXIIKJ20o35sp546xNbln6smkNstL2CBCwmvzZ1vEK5PzD4u8FCSNpVjw1oEeKION2VSHJLDU-mPUUqkWuH0Ro2yK4Qi_va_Yk6_FjvYD8L3wZsPFnHitOohjfkLVBCjXdj2G4.Y2MzMTcwNWYtZTgwMy00NGZlLWFiNGItNzVkMDFmMDM0Nzcy"
+}

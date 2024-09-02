@@ -1,0 +1,746 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Macchinetta API Gateway and Lambda function
+
+Parameters:
+  project:
+    Type: String
+    Default: macchinetta
+  apiGatewayStageName:
+    Type: String
+    AllowedPattern: "[a-z0-9]+"
+    Default: dev
+
+  lambdaFunctionName:
+    Type: String
+    AllowedPattern: "[a-zA-Z0-9]+[a-zA-Z0-9-]+[a-zA-Z0-9]+"
+    Default: get-cars
+
+  lambdaDetectObjectsFunctionName:
+    Type: String
+    AllowedPattern: "[a-zA-Z0-9]+[a-zA-Z0-9-]+[a-zA-Z0-9]+"
+    Default: detect-objects
+
+  lambdaSetStatusFunctionName:
+    Type: String
+    AllowedPattern: "[a-zA-Z0-9]+[a-zA-Z0-9-]+[a-zA-Z0-9]+"
+    Default: set-status
+
+  rekognitionModelArn:
+    Type: String
+
+Resources:
+  ## Cognito
+  CognitoUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub ${project}-user-pool
+      AutoVerifiedAttributes:
+        - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: true
+          RequireUppercase: true
+
+  CognitoUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref CognitoUserPool
+      AllowedOAuthFlowsUserPoolClient: true
+      CallbackURLs:
+        - http://localhost:3000
+      AllowedOAuthFlows:
+        - code
+        - implicit
+      AllowedOAuthScopes:
+        - email
+        - openid
+      SupportedIdentityProviders:
+        - COGNITO
+
+  UserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      Domain: iot-car
+      UserPoolId: !Ref CognitoUserPool
+  # Create a role for unauthorized acces to AWS resources. Very limited access. Only allows users in the previously created Identity Pool
+  CognitoUnAuthorizedRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Federated: "cognito-identity.amazonaws.com"
+            Action:
+              - "sts:AssumeRoleWithWebIdentity"
+      Policies:
+        - PolicyName: "CognitoUnauthorizedPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "mobileanalytics:PutEvents"
+                  - "cognito-sync:*"
+                Resource: "*"
+
+  # Create a role for authorized acces to AWS resources. Control what your user can access. This example only allows Lambda invokation
+  # Only allows users in the previously created Identity Pool
+  CognitoAuthorizedRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonKinesisVideoStreamsReadOnlyAccess
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Federated: "cognito-identity.amazonaws.com"
+            Action:
+              - "sts:AssumeRoleWithWebIdentity"
+      Policies:
+        - PolicyName: "CognitoAuthorizedPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "mobileanalytics:PutEvents"
+                  - "cognito-sync:*"
+                  - "cognito-identity:*"
+                Resource: "*"
+              - Effect: "Allow"
+                Action:
+                  - "lambda:InvokeFunction"
+                Resource: "*"
+  IdentityPool:
+    Type: "AWS::Cognito::IdentityPool"
+    Properties:
+      IdentityPoolName: !Sub ${project}-user-identity
+      AllowUnauthenticatedIdentities: true
+      CognitoIdentityProviders:
+        - ClientId: !Ref CognitoUserPoolClient
+          ProviderName: !GetAtt CognitoUserPool.ProviderName
+
+  # Assigns the roles to the Identity Pool
+  IdentityPoolRoleMapping:
+    Type: "AWS::Cognito::IdentityPoolRoleAttachment"
+    Properties:
+      IdentityPoolId: !Ref IdentityPool
+      Roles:
+        authenticated: !GetAtt CognitoAuthorizedRole.Arn
+        unauthenticated: !GetAtt CognitoUnAuthorizedRole.Arn
+  ApiGateway:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Description: API Gateway for Macchinetta
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+      Name: !Sub ${project}-api-gw
+
+  CarsList:
+    Type: "AWS::ApiGateway::Resource"
+    Properties:
+      RestApiId: !Ref ApiGateway
+      ParentId: !GetAtt
+        - ApiGateway
+        - RootResourceId
+      PathPart: cars
+  SetStatus:
+    Type: "AWS::ApiGateway::Resource"
+    Properties:
+      RestApiId: !Ref ApiGateway
+      ParentId: !GetAtt
+        - ApiGateway
+        - RootResourceId
+      PathPart: set-status
+
+  CarDescribe:
+    Type: "AWS::ApiGateway::Resource"
+    Properties:
+      RestApiId: !Ref ApiGateway
+      ParentId: !Ref CarsList
+      PathPart: "{car}"
+  cognitoAuthorizer:
+    Type: "AWS::ApiGateway::Authorizer"
+    Properties:
+      Type: COGNITO_USER_POOLS
+      RestApiId: !Ref ApiGateway
+      Name: !Sub ${project}-api-gw-authorizer
+      IdentitySource: method.request.header.Auth
+      ProviderARNs:
+        - !GetAtt CognitoUserPool.Arn
+  DetectObjectImage:
+    Type: "AWS::ApiGateway::Resource"
+    Properties:
+      RestApiId: !Ref ApiGateway
+      ParentId: !GetAtt
+        - ApiGateway
+        - RootResourceId
+      PathPart: detect-objects
+  ### METHODS
+  ApiGatewayRootMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      AuthorizerId: !Ref cognitoAuthorizer
+      HttpMethod: GET
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        PassthroughBehavior: WHEN_NO_TEMPLATES
+        Uri: !Sub
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations
+          - lambdaArn: !GetAtt GetCarsLambdaFunction.Arn
+      ResourceId: !Ref CarsList
+      RestApiId: !Ref ApiGateway
+
+  ApiGatewayGetCarMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      # AuthorizerId: !Ref cognitoAuthorizer
+      HttpMethod: GET
+      RequestParameters:
+        method.request.path.car: true
+
+      Integration:
+        PassthroughBehavior: WHEN_NO_TEMPLATES
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        RequestParameters:
+          integration.request.path.car: method.request.path.car
+        Uri: !Sub
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations
+          - lambdaArn: !GetAtt GetCarsLambdaFunction.Arn
+      ResourceId: !Ref CarDescribe
+      RestApiId: !Ref ApiGateway
+
+  ApiGatewayDetectObjectMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      #AuthorizerId: !Ref cognitoAuthorizer
+      HttpMethod: POST
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        PassthroughBehavior: WHEN_NO_TEMPLATES
+        Uri: !Sub
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations
+          - lambdaArn: !GetAtt DetectObjectsLambdaFunction.Arn
+      ResourceId: !Ref DetectObjectImage
+      RestApiId: !Ref ApiGateway
+
+  SetStatusMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      #AuthorizerId: !Ref cognitoAuthorizer
+      HttpMethod: POST
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        PassthroughBehavior: WHEN_NO_TEMPLATES
+        Uri: !Sub
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations
+          - lambdaArn: !GetAtt SetStatusLambdaFunction.Arn
+      ResourceId: !Ref SetStatus
+      RestApiId: !Ref ApiGateway
+  ApiGatewayOptionsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: OPTIONS
+      ResourceId: !Ref SetStatus
+      RestApiId: !Ref ApiGateway
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'POST,OPTIONS'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            ResponseTemplates:
+              application/json: ""
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+      MethodResponses:
+        - StatusCode: 200
+          ResponseModels:
+            application/json: "Empty"
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Origin: true
+  ApiGatewayDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - ApiGatewayRootMethod
+    Properties:
+      RestApiId: !Ref ApiGateway
+      StageName: !Ref apiGatewayStageName
+
+  ### Lambda
+  GetCarsLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: |
+          import boto3
+          import json
+          from botocore.exceptions import ClientError
+
+          timestream = boto3.client('timestream-query',region_name='eu-central-1')
+          iot = boto3.client('iot-data')
+          def detect_anomaly(value, measure):
+              if(measure=="battery"  and int(value)<3):
+                  return True
+              else:
+                  return False
+
+          def get_car_detail(car_name):
+              status=None
+              try:
+                  # Retrieve the thing shadow
+                  response = iot.get_thing_shadow(thingName=car_name)
+                  
+                  # Get the payload from the response
+                  payload = response['payload'].read()
+                  
+                  # Parse the JSON payload
+                  shadow_document = json.loads(payload)
+                  status= shadow_document["state"]["reported"] 
+                  return status
+              except ClientError as e:
+                  error_code = e.response['Error']['Code']
+                  if error_code == 'ResourceNotFoundException':
+                      return status
+                  else:
+                      return status
+
+                  
+          def lambda_handler(event, context):
+            if event["resource"]=='/cars/{car}':
+              car_name=event["pathParameters"]["car"]
+              status=get_car_detail(car_name)
+              metrics_array = [
+                  {"name": key, "value": value}
+                  for key, value in status.items()
+              ]
+              if status:
+                  response=metrics_array
+                  return {
+                      'statusCode': 200,
+                      'body': json.dumps(response),
+                      'headers': {
+                          'Access-Control-Allow-Headers': 'Content-Type',
+                          'Access-Control-Allow-Origin': '*',
+                          'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+                      }
+                  }
+              else:
+                  return {
+                      'statusCode': 404,
+                      'body': json.dumps({"messaage": "Status Not Found"}),
+                      'headers': {
+                          'Access-Control-Allow-Headers': 'Content-Type',
+                          'Access-Control-Allow-Origin': '*',
+                          'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+                      }
+                  }
+            else: 
+
+              list_cars = timestream.query(
+                  QueryString='SELECT distinct vehicleName FROM "macchinettaDB"."macchinettaDBTable" group by vehicleName '
+              )
+              
+              response=[]
+              for car in list_cars["Rows"]:
+                  anomalies=[]
+                  car_name=car["Data"][0]["ScalarValue"]
+                  status=get_car_detail(car_name)
+                  if status:
+                      Speed=status.Speed
+                      Battery=status.Battery
+                      GreenLed=state.GreenLed
+                      RedLed=state.RedLed
+                      if(detect_anomaly(Battery,"battery")):
+                          anomalies.append("Battery")
+                      response.append({"Name": car_name, "Anomalies":anomalies})
+                  else:
+                      anomalies.append("missing-status")
+                      response.append({"Name": car_name, "Anomalies":anomalies})
+                  
+                # TODO implement
+              return {
+                  'statusCode': 200,
+                  'body': json.dumps(response),
+                  'headers': {
+                      'Access-Control-Allow-Headers': 'Content-Type',
+                      'Access-Control-Allow-Origin': '*',
+                      'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+                  }
+              }
+
+      Description: Example Lambda function
+      FunctionName: !Ref lambdaFunctionName
+      Handler: index.lambda_handler
+      MemorySize: 128
+      Role: !GetAtt GetCarsLambdaIAMRole.Arn
+      Runtime: python3.12
+      Timeout: 15
+
+  DetectObjectsLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: |
+          import boto3
+          import json
+          import base64
+          import datetime
+          import os
+          session = boto3.Session(region_name="eu-central-1")
+          rekognition=session.client('rekognition')
+          min_confidence = 50
+          def lambda_handler(event, context):
+              body = json.loads(event["body"])
+              image = body["img"]
+              car = body["car"]
+              timestamp = body["date"]
+              model_arn = os.environ['REKOGNITION_MODEL']
+              jpg_original_64 = base64.b64decode(image)
+              response_rekognition=rekognition.detect_custom_labels(Image={'Bytes': jpg_original_64},
+                  MinConfidence=min_confidence,
+                  ProjectVersionArn=model_arn)
+              now = datetime.datetime.utcnow()
+
+              
+              return {
+                      'statusCode': 200,
+                      'body': json.dumps(response_rekognition["CustomLabels"]),
+                      'headers': {
+                        'Access-Control-Allow-Headers': 'Content-Type',
+                        'Access-Control-Allow-Origin': '*',
+                        'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+                      }
+                  }
+
+      Description: Detect Object With Rekognition
+      FunctionName: !Ref lambdaDetectObjectsFunctionName
+      Handler: index.lambda_handler
+      MemorySize: 128
+      Role: !GetAtt DetectObjectLambdaIAMRole.Arn
+      Runtime: python3.12
+      Timeout: 15
+      Environment:
+        Variables:
+          REKOGNITION_MODEL: !Ref rekognitionModelArn
+          S3_BUCKET: !Ref RekognitionS3Bucket
+  SetStatusLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: |
+          import boto3
+          import json
+          iot_data = boto3.client('iot-data')
+
+          def lambda_handler(event, context):
+              body = json.loads(event["body"])
+              iot_thing_name=body.get('thing')
+              response_message="No Update"
+              desired = body.get('desired')
+              if iot_thing_name is None:
+                  return {
+                      'statusCode': 400,
+                      'body': json.dumps('Invalid input event: thing is missing'),
+                          'headers': {
+                    'Access-Control-Allow-Headers': 'Content-Type',
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+              }
+                  }
+              if desired is None:
+                  return {
+                      'statusCode': 400,
+                      'body': json.dumps('Invalid input event: desired is missing'),
+                                'headers': {
+                    'Access-Control-Allow-Headers': 'Content-Type',
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+              }
+                  }    
+                  
+              # Get the desired GreenLed value from the input event
+              desired_led = desired.get('led')
+              
+              # Get the current thing shadow
+              response = iot_data.get_thing_shadow(thingName=iot_thing_name)
+              payload = json.loads(response['payload'].read())
+              # Get the current desired state from the shadow
+              current_desired_state = payload.get('state').get('desired')
+            
+              # Check if the desired GreenLed value needs to be updated
+            
+              if current_desired_state.get(desired_led.get('id')) != desired_led.get('status'):
+                  # Update the desired state with the new GreenLed value
+                  new_desired_state = {
+                      **current_desired_state,
+                      desired_led.get('id'): desired_led.get('status'),
+                  }
+            
+                  # Update the thing shadow with the new desired state
+                  desired_state = {
+                      'state': {
+                          'desired': new_desired_state
+                      }
+                  }
+                  response = iot_data.update_thing_shadow(
+                      thingName=iot_thing_name,
+                      payload=json.dumps(desired_state).encode('utf-8')
+                  )
+                  if response.get('ResponseMetadata').get('HTTPStatusCode')==200:
+                    response_message="Thing Updated"
+            
+              return {
+                'statusCode': 200,
+                'body': json.dumps({"message": response_message}),
+                'headers': {
+                    'Access-Control-Allow-Headers': 'Content-Type',
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+              }
+            }
+
+      Description: Example Lambda function
+      FunctionName: !Ref lambdaSetStatusFunctionName
+      Handler: index.lambda_handler
+      MemorySize: 128
+      Role: !GetAtt SetStatusLambdaIAMRole.Arn
+      Runtime: python3.12
+      Timeout: 15
+
+  CarsLambdaApiGatewayInvoke:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt GetCarsLambdaFunction.Arn
+      Principal: apigateway.amazonaws.com
+
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGateway}/*/GET/cars
+
+  CarDescribeLambdaApiGatewayInvoke:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt GetCarsLambdaFunction.Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGateway}/*/GET/cars/*
+
+  DetectObjectLambdaApiGatewayInvoke:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt DetectObjectsLambdaFunction.Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGateway}/*/POST/detect-objects
+
+  SetStatusLambdaApiGatewayInvoke:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt SetStatusLambdaFunction.Arn
+      Principal: apigateway.amazonaws.com
+      # note: if route *not* at API Gateway root, `SourceArn` would take the form of:
+      #               arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGateway}/${apiGatewayStageName}/${apiGatewayHTTPMethod}/PATH_PART
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGateway}/*/POST/set-status
+
+  GetCarsLambdaIAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+      Policies:
+        - PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Effect: Allow
+                Resource:
+                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${lambdaFunctionName}:*
+              - Action:
+                  - timestream:DescribeEndpoints
+                Effect: Allow
+                Resource:
+                  - "*"
+              - Action:
+                  - timestream:Select
+                Effect: Allow
+                Resource:
+                  - !Sub arn:aws:timestream:${AWS::Region}:${AWS::AccountId}:database/macchinettaDB/table/macchinettaDBTable
+              - Action:
+                  - "iot:GetThingShadow"
+                Effect: Allow
+                Resource:
+                  - !Sub "arn:aws:iot:${AWS::Region}:${AWS::AccountId}:thing/*"
+          PolicyName: lambda-get-cars
+  SetStatusLambdaIAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+      Policies:
+        - PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Effect: Allow
+                Resource:
+                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${lambdaSetStatusFunctionName}:*
+              - Action:
+                  - "iot:UpdateThingShadow"
+                  - "iot:GetThingShadow"
+                Effect: Allow
+                Resource:
+                  - !Sub "arn:aws:iot:${AWS::Region}:${AWS::AccountId}:thing/*"
+          PolicyName: lambda-set-status
+  DetectObjectLambdaIAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+      Policies:
+        - PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Effect: Allow
+                Resource:
+                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${lambdaDetectObjectsFunctionName}:*
+              - Action:
+                  - rekognition:DetectCustomLabels
+                Effect: Allow
+                Resource:
+                  - !Ref rekognitionModelArn
+              - Action:
+                  - "dynamodb:PutItem"
+                  - "dynamodb:GetItem"
+                  - "dynamodb:Query"
+                Effect: Allow
+                Resource: !GetAtt ImageRekognitionDynamoDBTable.Arn
+              - Action:
+                  - "s3:PutObject"
+                Effect: Allow
+                Resource: !Sub arn:aws:s3:::${RekognitionS3Bucket}/*
+          PolicyName: lambda-detect-object
+
+  # DynamoDB Table
+  ImageRekognitionDynamoDBTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: date
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+        - AttributeName: date
+          KeyType: RANGE
+      TableName: raspberry-pi-img-rekognition
+
+  GetCarLambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${lambdaFunctionName}
+      RetentionInDays: 90
+  DetectObjectsLambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${lambdaDetectObjectsFunctionName}
+      RetentionInDays: 90
+  # S3 Bucket
+  RekognitionS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: raspberry-pi-rekognition-bucket
+      AccessControl: Private
+  # IoT Role
+
+  IotKvsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - credentials.iot.amazonaws.com
+            Action:
+              - "sts:AssumeRole"
+      Policies:
+        - PolicyName: kinesis-video-stream-write-policy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - kinesisvideo:DescribeStream
+                  - kinesisvideo:CreateStream
+                  - kinesisvideo:GetDataEndpoint
+                  - kinesisvideo:PutMedia
+                  - kinesisvideo:DescribeSignalingChannel
+                  - kinesisvideo:CreateSignalingChannel
+                  - kinesisvideo:GetSignalingChannelEndpoint
+                  - kinesisvideo:GetIceServerConfig
+                  - kinesisvideo:ConnectAsMaster
+                Resource: "*"
+Outputs:
+  ApiGatewayInvokeURL:
+    Value: !Sub https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${apiGatewayStageName}
+
+  LambdaArn:
+    Value: !GetAtt GetCarsLambdaFunction.Arn
