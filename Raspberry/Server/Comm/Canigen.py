@@ -36,7 +36,7 @@ class Canigen:
     ):
         self._stop = False
         self._interface = interface
-        self._output_file = None
+        self._output_filename = None
         self._sig_names = []
         self._obd_answer_reverse_order = obd_answer_reverse_order
         fd = False
@@ -54,7 +54,7 @@ class Canigen:
         if values_filename is not None:
             self._values = self._load_json(values_filename)
         if output_filename is not None:
-            self._output_file = open(output_filename, "w")
+            self._output_filename = output_filename
         else:
             self._can_bus = can.interface.Bus(
                 self._interface, bustype="socketcan", fd=fd
@@ -107,11 +107,10 @@ class Canigen:
     def stop(self):
         self._stop = True
         for thread in self._threads:
-            # Close CAN Bus
-            self._can_bus.shutdown()
+        # Close CAN Bus
+            if hasattr(self, '_can_bus'):
+                self._can_bus.shutdown()
             thread.join()
-        if self._output_file:
-            self._output_file.close()
 
     def _load_json(self, filename):
         try:
@@ -136,11 +135,13 @@ class Canigen:
         data_hex = ""
         for byte in data:
             data_hex += "%02X" % byte
-        self._output_file.write(
-            "({:f}) {} {}#{}\n".format(
-                datetime.now().timestamp(), self._interface, can_id, data_hex
-            )
-        )
+        try:
+            with open(self._output_filename, "a") as fp:
+                fp.write("({:f}) {} {}#{}\n".format(
+                    datetime.now().timestamp(), self._interface, can_id, data_hex))
+        except Exception as e:
+            print(f"Error writing to output file: {self._output_filename}", e)
+
 
     def _sig_thread(self, msg_name, cycle_time):
         send_time = time.monotonic()
@@ -154,7 +155,7 @@ class Canigen:
                     val = self._values["sig"][sig.name]
                 vals[sig.name] = 0 if val is None else val
             data = msg.encode(vals)
-            if self._output_file is not None:
+            if self._output_filename is not None:
                 self._write_frame(msg, data)
             else:
                 frame = can.Message(
@@ -323,3 +324,5 @@ class Canigen:
 
     def save_values(self, filename):
         self._save_json(filename, self._values)
+
+

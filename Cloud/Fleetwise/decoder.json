@@ -1,6 +1,6 @@
 {
   "name": "MacchinettaDecoder",
-  "modelManifestArn": "arn:aws:iotfleetwise:eu-central-1:355961035940:model-manifest/MacchinettaModel",
+  "modelManifestArn": "<ARN>",
   "description": "AWS IoT FleetWise Macchinetta Decoder",
   "networkInterfaces": [
     {

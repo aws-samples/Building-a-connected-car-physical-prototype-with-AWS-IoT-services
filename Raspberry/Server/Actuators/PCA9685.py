@@ -49,7 +49,7 @@ class PCA9685:
     prescale = math.floor(prescaleval + 0.5)
 
 
-    oldmode = self.read(self.__MODE1);
+    oldmode = self.read(self.__MODE1)
     newmode = (oldmode & 0x7F) | 0x10        # sleep
     self.write(self.__MODE1, newmode)        # go to sleep
     self.write(self.__PRESCALE, int(math.floor(prescale)))

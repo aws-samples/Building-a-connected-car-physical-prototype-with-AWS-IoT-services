@@ -1,0 +1,60 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Resources:
+  GrafanaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: grafana.amazonaws.com
+            Action: "sts:AssumeRole"
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref "AWS::AccountId"
+              StringLike:
+                aws:SourceArn:
+                  !Join [
+                    "",
+                    [
+                      "arn:aws:grafana:",
+                      !Ref "AWS::Region",
+                      ":",
+                      !Ref "AWS::AccountId",
+                      ":/workspaces/*",
+                    ],
+                  ]
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AmazonTimestreamReadOnlyAccess"
+
+  GrafanaWorkspace:
+    Type: AWS::Grafana::Workspace
+    Properties:
+      Name: "macchinetta-workspace"
+      NotificationDestinations: []
+      DataSources:
+        - "TIMESTREAM"
+      GrafanaVersion: "9.4"
+      AccountAccessType: CURRENT_ACCOUNT
+      RoleArn:
+        Fn::GetAtt:
+          - "GrafanaRole"
+          - "Arn"
+      AuthenticationProviders:
+        - AWS_SSO
+      PermissionType: "SERVICE_MANAGED"
+      OrganizationalUnits: []
+      PluginAdminEnabled: "true"
+
+Outputs:
+  GrafanaWorkspaceId:
+    Value: !Ref GrafanaWorkspace
+    Description: "Grafana Workspace Id"
+  GrafanaUrl:
+    Value: !GetAtt GrafanaWorkspace.Endpoint
+    Description: "Grafana URL"
+  GrafanaIAMRole:
+    Value: !Ref GrafanaRole
+    Description: "Grafana IAM Role"

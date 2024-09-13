@@ -29,7 +29,7 @@ from hardware_manager import HardwareManager
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
-    style='%'  # Use the old %-style formatting
+    style='%' # Use the old %-style formatting
 )
 logger = logging.getLogger(__name__)
 
@@ -130,7 +130,7 @@ if __name__ == "__main__":
 
     # Function to run the SocketIO server
     def run_socketio():
-        SOCKETIO.run(APP, host="0.0.0.0")
+        SOCKETIO.run(APP, host='127.0.0.1', port=5000)
 
     # Signal handler function for graceful exit
     def signal_handler(sign, frame):
