@@ -1,0 +1,26 @@
+{
+  "endpoint": "your_endpoint",
+  "ca": "certs/AmazonRootCA1.pem",
+  "privatekey": "certs/private-key.key",
+  "certificate": "certs/certificate.pem",
+  "vehiclename": "your_car_name",
+  "routecalculator": "fake-gps",
+  "region": "your_region",
+  "gpsStart": [
+    9.170636,
+    45.468483
+  ],
+  "gpsEnd": [
+    9.207242,
+    45.450725
+  ],
+  "canInterface": "vcan0",
+  "canDatabase": "Comm/hscan.dbc",
+  "apikey": "your_api_key",
+  "camera": {
+    "frameWidth": 480,
+    "frameHeight": 320,
+    "fps": 15
+  },
+  "controller": "ps4"
+}

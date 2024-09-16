@@ -1,0 +1,16 @@
+flask
+flask-cors
+flask-socketio
+rpi_ws281x
+RPi.GPIO
+APScheduler
+smbus
+can
+cantools
+can-isotp
+awscrt
+awsiotsdk
+pygame
+boto3
+opencv-python
+websocket-client

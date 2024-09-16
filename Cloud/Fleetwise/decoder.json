@@ -1,0 +1,102 @@
+{
+  "name": "MacchinettaDecoder",
+  "modelManifestArn": "<ARN>",
+  "description": "AWS IoT FleetWise Macchinetta Decoder",
+  "networkInterfaces": [
+    {
+      "canInterface": {
+        "name": "vcan0",
+        "protocolName": "CAN",
+        "protocolVersion": "2.0b"
+      },
+      "interfaceId": "1",
+      "type": "CAN_INTERFACE"
+    }
+  ],
+  "signalDecoders": [
+    {
+      "canSignal": {
+        "factor": 0.5,
+        "isBigEndian": false,
+        "isSigned": false,
+        "length": 24,
+        "messageId": 100,
+        "offset": 0.0,
+        "startBit": 0
+      },
+      "fullyQualifiedName": "ActualVehicleSpeed",
+      "interfaceId": "1",
+      "type": "CAN_SIGNAL"
+    },
+    {
+      "canSignal": {
+        "factor": 0.25,
+        "isBigEndian": false,
+        "isSigned": false,
+        "length": 24,
+        "messageId": 202,
+        "offset": -100.0,
+        "startBit": 0
+      },
+      "fullyQualifiedName": "Battery.BatteryChargeLevel",
+      "interfaceId": "1",
+      "type": "CAN_SIGNAL"
+    },
+    {
+      "canSignal": {
+        "factor": 1,
+        "isBigEndian": false,
+        "isSigned": false,
+        "length": 24,
+        "messageId": 500,
+        "offset": 0.0,
+        "startBit": 0
+      },
+      "fullyQualifiedName": "Led.Green",
+      "interfaceId": "1",
+      "type": "CAN_SIGNAL"
+    },
+    {
+      "canSignal": {
+        "factor": 1,
+        "isBigEndian": false,
+        "isSigned": false,
+        "length": 24,
+        "messageId": 502,
+        "offset": 0.0,
+        "startBit": 0
+      },
+      "fullyQualifiedName": "Led.Red",
+      "interfaceId": "1",
+      "type": "CAN_SIGNAL"
+    },
+    {
+      "canSignal": {
+        "factor": 1,
+        "isBigEndian": false,
+        "isSigned": false,
+        "length": 24,
+        "messageId": 604,
+        "offset": 0.0,
+        "startBit": 0
+      },
+      "fullyQualifiedName": "VehicleStatus",
+      "interfaceId": "1",
+      "type": "CAN_SIGNAL"
+    },
+    {
+      "canSignal": {
+        "factor": 1,
+        "isBigEndian": false,
+        "isSigned": false,
+        "length": 24,
+        "messageId": 605,
+        "offset": 0.0,
+        "startBit": 0
+      },
+      "fullyQualifiedName": "Battery.BatteryPackVoltage",
+      "interfaceId": "1",
+      "type": "CAN_SIGNAL"
+    }
+  ]
+}

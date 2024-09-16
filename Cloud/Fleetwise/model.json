@@ -1,0 +1,13 @@
+{
+  "description": "AWS IoT FleetWise Macchinetta Model",
+  "name": "MacchinettaModel",
+  "signalCatalogArn": "<ARN>",
+  "nodes": [
+    "ActualVehicleSpeed",
+    "Led.Red",
+    "Led.Green",
+    "VehicleStatus",
+    "Battery.BatteryChargeLevel",
+    "Battery.BatteryPackVoltage"
+  ]
+}

@@ -1,0 +1,124 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Parameters:
+  DatabaseName:
+    Type: String
+    Default: macchinetta
+  TableName:
+    Type: String
+    Default: fleet1
+  CampaignName:
+    Type: String
+    Default: demo-campaign
+Resources:
+  TimeStreamBucket:
+    # This is a demo, to reduce costs we've suppressed the following check;
+    # checkov:skip=CKV_AWS_18:Don't check S3 Logging is not enabled
+    # checkov:skip=CKV_AWS_21:Don't S3 Versioning is not enabled
+    # checkov:skip=CKV_AWS_160:Use default Encryption
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W35
+            reason: "For this demo we have disable the cfn_nag check 'S3 Bucket should have access logging configured' to avoid incurring in further costs."
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName:
+        !Join [
+          "",
+          ["macchinetta", !Ref "AWS::AccountId", "-", !Ref "AWS::Region"],
+        ]
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  TimeStreamBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref TimeStreamBucket
+      PolicyDocument:
+        Statement:
+          - Sid: AllowTimestreamExecutionRoleWrite
+            Effect: Allow
+            Principal:
+              AWS: !GetAtt TimestreamExecutionRole.Arn
+            Action:
+              - s3:PutObject
+            Resource: !Join ["", ["arn:aws:s3:::", !Ref TimeStreamBucket, "/*"]]
+  TimestreamDatabase:
+    Type: "AWS::Timestream::Database"
+    Properties:
+      DatabaseName: !Ref DatabaseName
+
+  TimestreamTable:
+    Type: "AWS::Timestream::Table"
+    DependsOn: TimestreamDatabase
+    Properties:
+      DatabaseName: !Ref DatabaseName
+      TableName: !Ref TableName
+      RetentionProperties:
+        MemoryStoreRetentionPeriodInHours: 12
+        MagneticStoreRetentionPeriodInDays: 180
+      MagneticStoreWriteProperties:
+        EnableMagneticStoreWrites: true
+        MagneticStoreRejectedDataLocation:
+          S3Configuration:
+            BucketName: !Ref TimeStreamBucket
+            EncryptionOption: "SSE_S3"
+            ObjectKeyPrefix:
+              !Join ["-", ["macchinetta", "timestream", "rejected"]]
+  TimestreamExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Policies:
+        - PolicyName: TimestreamIngestionAndDescribe
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: timestreamIngestion
+                Effect: Allow
+                Action:
+                  - "timestream:WriteRecords"
+                  - "timestream:Select"
+                  - "timestream:DescribeTable"
+                Resource: !Ref TimestreamTable
+              - Sid: timestreamDescribeEndpoint
+                Effect: Allow
+                Action:
+                  - "timestream:DescribeEndpoints"
+                Resource: "*"
+              - Sid: allowPutForRejectedOnS3
+                Effect: Allow
+                Action:
+                  - "s3:PutObject"
+                Resource:
+                  !Join ["", ["arn:aws:s3:::", !Ref TimeStreamBucket, "/*"]]
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: iotfleetwise.amazonaws.com
+            Action: "sts:AssumeRole"
+            Condition:
+              StringEquals:
+                aws:SourceArn:
+                  - !Sub "arn:aws:iotfleetwise:${AWS::Region}:${AWS::AccountId}:campaign/${CampaignName}"
+                aws:SourceAccount:
+                  - !Ref AWS::AccountId
+Outputs:
+  DatabaseName:
+    Description: Timestream Database Name
+    Value: !Ref TimestreamDatabase
+  TableName:
+    Description: Timestream Table Name
+    Value: !GetAtt TimestreamTable.Name
+  TableArn:
+    Description: Timestream Table Arn
+    Value: !GetAtt TimestreamTable.Arn
