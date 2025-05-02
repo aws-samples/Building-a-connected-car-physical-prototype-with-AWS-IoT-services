@@ -87,7 +87,7 @@ Resources:
                   - "timestream:WriteRecords"
                   - "timestream:Select"
                   - "timestream:DescribeTable"
-                Resource: !Ref TimestreamTable
+                Resource: !GetAtt TimestreamTable.Arn
               - Sid: timestreamDescribeEndpoint
                 Effect: Allow
                 Action:
